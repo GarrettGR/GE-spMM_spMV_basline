@@ -33,7 +33,7 @@ static inline uint64_t min_u64(uint64_t a, uint64_t b) {
 
 static void ensure_unique_sorted_cols(uint64_t* col_idx, uint64_t start, uint64_t end, uint64_t max_col) {
   if (start >= end) return;
-
+  
   DEBUG_PRINT("Ensuring unique sorted columns for range [%llu, %llu)", start, end);
 
   for (uint64_t i = start; i < end - 1; i++) {
@@ -57,7 +57,7 @@ static void ensure_unique_sorted_cols(uint64_t* col_idx, uint64_t start, uint64_
   }
 
   uint64_t new_end = write_pos + 1;
-
+  
   DEBUG_PRINT("Reduced from %llu to %llu entries after removing duplicates", end - start, new_end - start);
 
   while (new_end < end) {
@@ -545,7 +545,7 @@ status_t create_test_matrix(uint64_t rows, uint64_t cols, uint64_t nnz, matrix_p
 
       uint64_t base_entries = nnz / rows;
       uint64_t extra_entries = nnz % rows;
-
+      
       DEBUG_PRINT("Base entries per row: %llu, Extra entries: %llu", base_entries, extra_entries);
 
       if (base_entries >= cols) {
@@ -559,7 +559,7 @@ status_t create_test_matrix(uint64_t rows, uint64_t cols, uint64_t nnz, matrix_p
 
       for (uint64_t i = 0; i < rows; i++) {
         uint64_t row_entries = base_entries + (i < extra_entries ? 1 : 0);
-
+        
         DEBUG_PRINT("Row %llu: Allocating %llu entries starting at position %llu", i, row_entries, current_pos);
 
         for (uint64_t j = 0; j < row_entries; j++) {
@@ -606,11 +606,11 @@ status_t create_test_matrix(uint64_t rows, uint64_t cols, uint64_t nnz, matrix_p
         (*matrix)->values[i] = 1.0;
       }
       (*matrix)->row_ptr[rows] = rows;
-
+      
       DEBUG_PRINT("Created diagonal matrix with %llu nonzeros", rows);
       break;
     }
-
+    
     case PATTERN_DENSE: {
       DEBUG_PRINT("Generating dense pattern matrix %llux%llu with %llu nonzeros", rows, cols, nnz);
 
@@ -625,7 +625,7 @@ status_t create_test_matrix(uint64_t rows, uint64_t cols, uint64_t nnz, matrix_p
       if (entries_per_row > cols) {
         entries_per_row = cols;
       }
-
+          
       DEBUG_PRINT("Target entries per row: %llu", entries_per_row);
 
       uint64_t current_pos = 0;
@@ -641,7 +641,7 @@ status_t create_test_matrix(uint64_t rows, uint64_t cols, uint64_t nnz, matrix_p
           (*matrix)->values[current_pos] = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
           current_pos++;
         }
-
+        
         (*matrix)->row_ptr[i + 1] = current_pos;
       }
 
@@ -669,15 +669,15 @@ status_t create_test_matrix(uint64_t rows, uint64_t cols, uint64_t nnz, matrix_p
       uint64_t current_pos = 0;
 
       (*matrix)->row_ptr[0] = 0;
-
+      
       for (uint64_t block = 0; block < num_blocks && current_pos < nnz; block++) {
         DEBUG_PRINT("Processing block %llu", block);
-
+        
         uint64_t entries_per_row = (entries_per_block + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
         for (uint64_t i = 0; i < BLOCK_SIZE && current_pos < nnz; i++) {
           uint64_t row = block * BLOCK_SIZE + i;
-
+          
           DEBUG_PRINT("Block %llu, Row %llu: Adding %llu entries at position %llu", block, row, entries_per_row, current_pos);
 
           for (uint64_t j = 0; j < entries_per_row && current_pos < nnz; j++) {

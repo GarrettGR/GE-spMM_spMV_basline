@@ -395,6 +395,8 @@ static const test_case_t test_cases[] = {
 
 int main(int argc, char **argv) {
   test_impl(csr_spmm_sequential, "Sequential", argc, argv, test_cases);
+#ifdef _OPENMP
   test_impl(csr_spmm_openmp, "OpenMP Parallel", argc, argv, test_cases);
+#endif
   return 0;
 }

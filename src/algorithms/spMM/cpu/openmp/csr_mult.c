@@ -1,5 +1,5 @@
 #include "formats/csr.h"
-#include "algorithms/spmm/csr_spmm.h"
+#include "algorithms/spMM/csr_spmm.h"
 #include "utils/status.h"
 #include <omp.h>
 #include <stdlib.h>

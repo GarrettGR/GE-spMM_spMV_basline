@@ -3,7 +3,8 @@ if(DEFINED OPENMP_CONFIG_INCLUDED)
 endif()
 set(OPENMP_CONFIG_INCLUDED TRUE)
 
-if(APPLE) # (?) Should fix issues on MacOS / Homebrew GCC compiler
+if(APPLE AND USE_OpenMP) # (?) Should fix issues on MacOS / Homebrew GCC compiler
+  message(STATUS "Checking for OpenMP support on MacOS")
   execute_process(
     COMMAND ${CMAKE_C_COMPILER} -dumpversion
     OUTPUT_VARIABLE GCC_VERSION
@@ -36,17 +37,26 @@ if(APPLE) # (?) Should fix issues on MacOS / Homebrew GCC compiler
     message(STATUS "OpenMP not found - OpenMP implementations will be disabled")
   endif()
 else()
-  find_package(OpenMP QUIET)
+  message(STATUS "Checking for OpenMP support on Linux")
+  # include(FindOpenMP)
+
+  set(CMAKE_MODULE_PATH_BACKUP ${CMAKE_MODULE_PATH})
+  set(CMAKE_MODULE_PATH "") # Temporarily clear module path to force using built-in module
+  find_package(OpenMP REQUIRED)
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH_BACKUP})
+
   if(OpenMP_C_FOUND)
     set(OPENMP_FOUND TRUE)
     message(STATUS "Found OpenMP: ${OpenMP_C_VERSION}")
+
     if(NOT TARGET OpenMP::OpenMP)
       add_library(OpenMP::OpenMP INTERFACE IMPORTED)
       set_target_properties(OpenMP::OpenMP PROPERTIES
         INTERFACE_COMPILE_OPTIONS "${OpenMP_C_FLAGS}"
-        INTERFACE_LINK_LIBRARIES "${OpenMP_C_FLAGS}")
+        INTERFACE_LINK_LIBRARIES OpenMP::OpenMP_C
+      )
     endif()
-  else()
+  else()  
     set(OPENMP_FOUND FALSE)
     message(STATUS "OpenMP not found - OpenMP implementations will be disabled")
   endif()

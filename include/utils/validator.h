@@ -17,10 +17,6 @@ typedef enum {
 } matrix_pattern_t;
 
 /**
- * @brief Matrix pattern types
- */
-
-/**
  * @brief Create a test CSR matrix with specified pattern
  *
  * @param rows Number of rows
@@ -57,7 +53,7 @@ bool validate_spmv_with_petsc(const csr_matrix* A, const double* x, const double
  *
  * @param A First matrix
  * @param B Second matrix
- * @return bool True if matrices match within tolerance
+ * @return bool True if matrices match (within a tolerance)
  */
 bool compare_matrices(const csr_matrix* A, const csr_matrix* B);
 

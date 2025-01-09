@@ -469,9 +469,11 @@ static const test_case_t test_cases[] = {
 int main(int argc, char **argv) {
   impl_t impls[] = {
     {IMPL_TYPE_SPMM, {.spmm = csr_spmm_sequential}, "SpMM Sequential"},
-    {IMPL_TYPE_SPMM, {.spmm = csr_spmm_openmp}, "SpMM OpenMP"},
     {IMPL_TYPE_SPMV, {.spmv = csr_spmv_sequential}, "SpMV Sequential"},
-    {IMPL_TYPE_SPMV, {.spmv = csr_spmv_openmp}, "SpMV OpenMP"}
+ #ifdef _OPENMP
+   , {IMPL_TYPE_SPMM, {.spmm = csr_spmm_openmp}, "SpMM OpenMP"},
+   {IMPL_TYPE_SPMV, {.spmv = csr_spmv_openmp}, "SpMV OpenMP"}
+#endif
   };
 
   for (size_t i = 0; i < sizeof(impls)/sizeof(impls[0]); i++) {

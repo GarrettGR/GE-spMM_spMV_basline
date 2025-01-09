@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 static status_t calculate_memory_size(uint64_t rows, uint64_t cols, uint64_t nnz, size_t* total_size);
 
@@ -11,13 +12,13 @@ status_t csr_create(uint64_t rows, uint64_t cols, uint64_t nnz, csr_matrix** mat
   if (!matrix) return STATUS_NULL_POINTER;
   if ( !(rows == 0 && cols == 0 && nnz == 0) && (rows == 0 || cols == 0 || nnz == 0)) return STATUS_INVALID_DIMENSIONS;
 
-  if (prof) profile_start_init(prof);
+  // if (prof) profile_start_init(prof);
 
   size_t total_size;
   status_t status = calculate_memory_size(rows, cols, nnz, &total_size);
   if (status != STATUS_SUCCESS) return status;
 
-  if (prof) profile_record_memory(prof, total_size);
+  // if (prof) profile_record_memory(prof, total_size);
 
   *matrix = (csr_matrix*)malloc(sizeof(csr_matrix));
   if (!*matrix) return STATUS_ALLOCATION_FAILED;
@@ -51,7 +52,7 @@ status_t csr_create(uint64_t rows, uint64_t cols, uint64_t nnz, csr_matrix** mat
 
   memset((*matrix)->row_ptr, 0, row_ptr_size);
 
-  if (prof) profile_end_init(prof);
+  // if (prof) profile_end_init(prof);
   return STATUS_SUCCESS;
 }
 
@@ -61,7 +62,7 @@ status_t csr_create_from_arrays(uint64_t rows, uint64_t cols, uint64_t nnz, doub
   if (!values || !col_idx || !row_ptr) return STATUS_NULL_POINTER;
   if (rows == 0 || cols == 0 || nnz == 0) return STATUS_INVALID_DIMENSIONS;
 
-  if (prof) profile_start_init(prof);
+  // if (prof) profile_start_init(prof);
 
   *matrix = (csr_matrix*)malloc(sizeof(csr_matrix));
   if (!*matrix) return STATUS_ALLOCATION_FAILED;
@@ -74,16 +75,16 @@ status_t csr_create_from_arrays(uint64_t rows, uint64_t cols, uint64_t nnz, doub
   (*matrix)->row_ptr = row_ptr;
   (*matrix)->own_data = 0;
 
-  if (prof) profile_record_memory(prof, sizeof(csr_matrix));  // NOTE: This will only be the struct size ???
+  // if (prof) profile_record_memory(prof, sizeof(csr_matrix));  // NOTE: This will only be the struct size ???
 
-  if (prof) profile_end_init(prof);
+  // if (prof) profile_end_init(prof);
   return STATUS_SUCCESS;
 }
 
 void csr_free(csr_matrix* matrix, profile_context* prof) {
   if (!matrix) return;
 
-  if (prof) profile_start_init(prof);
+  // if (prof) profile_start_init(prof);
 
   if (matrix->own_data) {
 #ifdef _WIN32
@@ -100,15 +101,15 @@ void csr_free(csr_matrix* matrix, profile_context* prof) {
   free(matrix);
 
   if (prof) {
-    profile_record_memory(prof, 0);
-    profile_end_init(prof);
+    // profile_record_memory(prof, 0);
+    // profile_end_init(prof);
   }
 }
 
 status_t csr_copy(const csr_matrix* src, csr_matrix** dest, profile_context* prof) {
   if (!src || !dest) return STATUS_NULL_POINTER;
 
-  if (prof) profile_start_init(prof);
+  // if (prof) profile_start_init(prof);
 
   status_t status = csr_create(src->rows, src->cols, src->nnz, dest, NULL);
   if (status != STATUS_SUCCESS) return status;
@@ -119,9 +120,9 @@ status_t csr_copy(const csr_matrix* src, csr_matrix** dest, profile_context* pro
 
   if (prof) {
     size_t total_size;
-    calculate_memory_size(src->rows, src->cols, src->nnz, &total_size);
-    profile_record_memory(prof, total_size);
-    profile_end_init(prof);
+    // calculate_memory_size(src->rows, src->cols, src->nnz, &total_size);
+    // profile_record_memory(prof, total_size);
+    // profile_end_init(prof);
   }
 
   return STATUS_SUCCESS;

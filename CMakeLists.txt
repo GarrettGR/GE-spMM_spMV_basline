@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
-project(sparse_matrix_ops LANGUAGES C CXX)
+project(sparse_matrix_baseline LANGUAGES C CXX)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 if(CMAKE_C_COMPILER)
   set(ENV{CC} ${CMAKE_C_COMPILER})
@@ -8,9 +9,45 @@ if(CMAKE_CXX_COMPILER)
   set(ENV{CXX} ${CMAKE_CXX_COMPILER})
 endif()
 
+add_compile_options(-Wall -Wextra)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_options(-g -O0)
+else()
+  add_compile_options(-O3)
+endif()
+
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(PETSC PETSc REQUIRED)
+# --------- OpenMP ----------
+
+include(FindOpenMP)
+# pkg_check_modules(OPENMP REQUIRED omp) # this can't find openmp on macos (homebrew)
+
+#TODO: change the name of the custom module and only have it handle MacOS
+
+# if(APPLE)
+#   include(FindOpenMPApple)
+# else()
+#   find_package(OpenMP REQUIRED)
+# endif()
+
+# ---------- CUDA -----------
+
+include(FindCUDA)
+# pkg_check_modules(CUDA REQUIRED cuda) # is this right?
+
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+if(CUDA_FOUND)
+  enable_language(CUDA)
+  set(CMAKE_CUDA_STANDARD 23)
+  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+endif()
+
+# ---------- PETSc ----------
+pkg_check_modules(PETSC PETSc REQUIRED) #FIXME: this should be made optional (and maybe use SuiteSparse as alternative ??)
+# find_package(SuiteSparse REQUIRED)
+
 if(NOT PETSC_FOUND)
   message(FATAL_ERROR "PETSc not found!")
 endif()
@@ -26,60 +63,38 @@ if(NOT MPI_FOUND)
 endif()
 # message(STATUS "MPI include path: ${MPI_INCLUDE_PATH}")
 # message(STATUS "MPI libraries: ${MPI_LIBRARIES}")
-message(STATUS "MPI version: ${MPI_VERSION}") #FIXME: this doesn't work ???
+# message(STATUS "MPI version: ${MPI_VERSION}") #FIXME: this doesn't work ???
 
 function(target_link_petsc target)
-  set(PETSC_ROOT "/opt/homebrew/opt/petsc")
+  if (APPLE) #FIXME: this is hardcoded... bad :(
+    set(PETSC_ROOT "/opt/homebrew/opt/petsc") # /opt/local/lib/petscdir/petsc3.19
+  else()
+    set(PETSC_ROOT "/usr/lib/petscdir/petsc3.19")
+  endif()
   
   target_include_directories(${target} 
     PRIVATE 
-    ${PETSC_ROOT}/include
-    ${PETSC_INCLUDE_DIRS}
-    ${MPI_INCLUDE_PATH}
+      ${PETSC_ROOT}/include
+      ${PETSC_INCLUDE_DIRS}
+      ${MPI_INCLUDE_PATH}
   )
   target_link_directories(${target} 
     PRIVATE 
-    ${PETSC_ROOT}/lib
-    ${PETSC_LIBRARY_DIRS}
+      ${PETSC_ROOT}/lib
+      ${PETSC_LIBRARY_DIRS}
   )
   target_link_libraries(${target} 
     PRIVATE 
-    ${PETSC_LIBRARIES}
-    MPI::MPI_C
+      ${PETSC_LIBRARIES}
+      MPI::MPI_C
   )
   target_compile_options(${target} 
     PRIVATE 
-    ${PETSC_CFLAGS_OTHER}
+      ${PETSC_CFLAGS_OTHER}
   )
 endfunction()
 
-if(CMAKE_C_COMPILER)
-  set(ENV{CC} ${CMAKE_C_COMPILER})
-endif()
-if(CMAKE_CXX_COMPILER)
-  set(ENV{CXX} ${CMAKE_CXX_COMPILER})
-endif()
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-include(FindOpenMP)
-include(FindCUDA)
-# pkg_check_modules(OPENMP REQUIRED omp) # this can't find openmp on macos (homebrew)
-# pkg_check_modules(CUDA REQUIRED cuda) # is this right? 
-
-set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-if(CUDA_FOUND)
-  enable_language(CUDA)
-  set(CMAKE_CUDA_STANDARD 23)
-  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-endif()
-
-add_compile_options(-Wall -Wextra)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_compile_options(-g -O0)
-else()
-  add_compile_options(-O3)
-endif()
+# ---------- Main Libraries -----------
 
 add_library(profiler
   src/utils/profiler.c
@@ -98,13 +113,24 @@ add_library(csr_format
 target_include_directories(csr_format PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(csr_format PRIVATE profiler)
 
-add_library(csr_spmm_cpu
+# ------ Sequential Implementations ---
+
+add_library(csr_spmm_seq 
   src/algorithms/spMM/cpu/sequential/csr_mult.c
 )
-target_link_libraries(csr_spmm_cpu PUBLIC csr_format)
+target_link_libraries(csr_spmm_seq PUBLIC csr_format)
+
+add_library(csr_spmv_seq
+  src/algorithms/spMV/cpu/sequential/csr_mult.c
+)
+target_link_libraries(csr_spmv_seq PUBLIC csr_format)
+
+# ------ OpenMP Implementations -------
 
 if(OPENMP_FOUND)
   message(STATUS "Building OpenMP implementations")
+  # add_compile_options(-fopenmp)
+
   add_library(csr_spmm_openmp
     src/algorithms/spMM/cpu/openmp/csr_mult.c
   )
@@ -114,26 +140,7 @@ if(OPENMP_FOUND)
     PRIVATE 
       OpenMP::OpenMP
   )
-endif()
 
-if(CUDA_FOUND)
-  message(STATUS "Building CUDA implementations")
-#   add_library(csr_spmm_cuda)
-#   cuda_add_sources(csr_spmm_cuda
-#     src/algorithms/spMM/gpu/CUDA/csr_spmm.cu
-#   )
-#   target_link_libraries(csr_spmm_cuda
-#     PUBLIC csr_format
-#     PRIVATE CUDA::CUDA
-#   )
-endif()
-
-add_library(csr_spmv_cpu
-  src/algorithms/spMV/cpu/sequential/csr_mult.c
-)
-target_link_libraries(csr_spmv_cpu PUBLIC csr_format)
-
-if(OPENMP_FOUND)
   add_library(csr_spmv_openmp
     src/algorithms/spMV/cpu/openmp/csr_mult.c
   )
@@ -145,7 +152,19 @@ if(OPENMP_FOUND)
   )
 endif()
 
+# --- CUDA Implementations ---
+
 if(CUDA_FOUND)
+  message(STATUS "Building CUDA implementations")
+#   add_library(csr_spmm_cuda)
+#   cuda_add_sources(csr_spmm_cuda
+#     src/algorithms/spMM/gpu/CUDA/csr_spmm.cu
+#   )
+#   target_link_libraries(csr_spmm_cuda
+#     PUBLIC csr_format
+#     PRIVATE CUDA::CUDA
+#   )
+#
 #   add_library(csr_spmv_cuda)
 #   cuda_add_sources(csr_spmv_cuda
 #     src/algorithms/spMV/gpu/CUDA/csr_spmv.cu
@@ -156,11 +175,13 @@ if(CUDA_FOUND)
 #   )
 endif()
 
+# ------- Benchmarks --------
+
 # add_executable(spmm_bench benchmarks/spmm_bench.c)
 # target_link_libraries(spmm_bench
 #   PRIVATE
 #     csr_format
-#     csr_spmm_cpu
+#     csr_spmm_seq 
 # )
 
 if(OPENMP_FOUND)
@@ -171,9 +192,10 @@ if(CUDA_FOUND)
 #   target_link_libraries(spmm_bench PRIVATE csr_spmm_cuda)
 endif()
 
-enable_testing()
+# ---------- Tests ----------
 
-# find_package(SuiteSparse REQUIRED)
+enable_testing()
+set(CMAKE_CTEST_ARGUMENTS "--output-on-failure --progress")
 
 add_library(test_utils
     tests/test_utils.c
@@ -220,9 +242,15 @@ target_link_libraries(csr_spmv_tests
   PRIVATE
     csr_format
     test_utils
-    csr_spmv_cpu
-    csr_spmv_openmp
+    csr_spmv_seq
 )
+if(OPENMP_FOUND)
+  target_link_libraries(csr_spmv_tests PRIVATE csr_spmv_openmp)
+endif()
+if(CUDA_FOUND)
+  # target_link_libraries(csr_spmv_tests PRIVATE csr_spmv_cuda)
+endif()
+
 # add_test(NAME CSRSpMVTests COMMAND csr_spmv_tests all)
 add_test(NAME csr_spmv_null COMMAND csr_spmv_tests null_input)
 add_test(NAME csr_spmv_ident COMMAND csr_spmv_tests identity)
@@ -236,9 +264,15 @@ target_link_libraries(csr_spmm_tests
   PRIVATE
     csr_format
     test_utils
-    csr_spmm_cpu
-    csr_spmm_openmp
+    csr_spmm_seq 
 )
+if(OPENMP_FOUND)
+  target_link_libraries(csr_spmm_tests PRIVATE csr_spmm_openmp)
+endif()
+if(CUDA_FOUND)
+  # target_link_libraries(csr_spmm_tests PRIVATE csr_spmm_cuda)
+endif()
+
 # add_test(NAME CSRSpMMTests COMMAND csr_spmm_tests all)
 add_test(NAME csr_spmm_null COMMAND csr_spmm_tests null_input)
 add_test(NAME csr_spmm_ident COMMAND csr_spmm_tests identity)
@@ -260,15 +294,29 @@ add_test(NAME csr_spmm_dense COMMAND csr_spmm_tests dense)
 add_executable(validate_implementations tests/validate_implementations.c)
 target_link_libraries(validate_implementations
   PRIVATE
+    m
     validator
     csr_format
-    csr_spmm_cpu
-    csr_spmm_openmp # TODO: make this optional / dynamically added
-    csr_spmv_cpu
-    csr_spmv_openmp
+    csr_spmm_seq 
+    csr_spmv_seq
     test_utils
 )
+if(OPENMP_FOUND)
+  target_link_libraries(validate_implementations 
+    PRIVATE 
+      csr_spmm_openmp
+      csr_spmv_openmp
+  )
+endif()
+if(CUDA_FOUND)
+  # target_link_libraries(validate_implementations 
+  #   PRIVATE 
+  #     csr_spmm_cuda
+  #     csr_spmv_cuda
+  # )
+endif()
 target_link_petsc(validate_implementations)
+
 # add_test(NAME ValidateImplementations COMMAND validate_implementations all)
 add_test(NAME validate_spmm_random COMMAND validate_implementations spmm_random)
 add_test(NAME validate_spmm_block COMMAND validate_implementations spmm_block)
@@ -288,33 +336,31 @@ set_tests_properties(
 
 install(TARGETS
   csr_format
-  csr_spmm_cpu
-  csr_spmv_cpu
+  csr_spmm_seq 
+  csr_spmv_seq
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
 )
 
 if(OPENMP_FOUND)
-#   install(TARGETS
-#     csr_spmm_openmp
-#     csr_spmv_openmp
-#     LIBRARY DESTINATION lib
-#     ARCHIVE DESTINATION lib
-#     RUNTIME DESTINATION bin
-#   )
+  install(TARGETS
+    csr_spmm_openmp
+    csr_spmv_openmp
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+  )
 endif()
 
 if(CUDA_FOUND)
-#   install(TARGETS
-#     csr_spmm_cuda
-#     csr_spmv_cuda
-#     LIBRARY DESTINATION lib
-#     ARCHIVE DESTINATION lib
-#     RUNTIME DESTINATION bin
-#   )
+  # install(TARGETS
+  #   csr_spmm_cuda
+  #   csr_spmv_cuda
+  #   LIBRARY DESTINATION lib
+  #   ARCHIVE DESTINATION lib
+  #   RUNTIME DESTINATION bin
+  # )
 endif()
 
 install(DIRECTORY include/ DESTINATION include)
-
-set(CMAKE_CTEST_ARGUMENTS "--output-on-failure --progress")
