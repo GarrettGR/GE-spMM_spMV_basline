@@ -1,7 +1,6 @@
 #ifndef PROFILER_H
 #define PROFILER_H
 
-#include <stdint.h>
 #include <stddef.h>
 
 #define MAX_SECTIONS 32

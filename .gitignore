@@ -6,6 +6,7 @@
 *.out
 
 build/
+disorganized/
 data/
 .vscode/
 .ropeproject/

@@ -256,7 +256,7 @@ add_test(NAME csr_spmv_null COMMAND csr_spmv_tests null_input)
 add_test(NAME csr_spmv_ident COMMAND csr_spmv_tests identity)
 add_test(NAME csr_spmv_small COMMAND csr_spmv_tests random_small)
 add_test(NAME csr_spmv_large COMMAND csr_spmv_tests random_large)
-# add_test(NAME csr_spmv_perf COMMAND csr_spmv_tests performance)
+add_test(NAME csr_spmv_perf COMMAND csr_spmv_tests performance)
 
 # CSR SpMM
 add_executable(csr_spmm_tests tests/algorithms/csr_spmm_tests.c)
@@ -281,7 +281,7 @@ add_test(NAME csr_spmm_large COMMAND csr_spmm_tests random_large)
 add_test(NAME csr_spmm_chain COMMAND csr_spmm_tests chain)
 add_test(NAME csr_spmm_bdiag COMMAND csr_spmm_tests block_diagonal)
 add_test(NAME csr_spmm_dense COMMAND csr_spmm_tests dense)
-# add_test(NAME csr_spmm_perf COMMAND csr_spmm_tests performance)
+add_test(NAME csr_spmm_perf COMMAND csr_spmm_tests performance)
 
 # ----- Profile Tests -------
 
