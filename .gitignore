@@ -1,0 +1,12 @@
+.DS_Store
+
+*.bak
+*.swp
+*.o
+*.out
+
+build/
+data/
+.vscode/
+.ropeproject/
+.cache/
