@@ -110,4 +110,23 @@ int run_test_suite(int argc, char** argv, const test_case_t* test_cases);
  */
 void print_matrix(const csr_matrix* matrix);
 
+/**
+ * @brief Create a temporary matrix market (.mtx) file for testing
+ *
+ * @param filename Output filename
+ * @param rows Number of rows
+ * @param cols Number of columns
+ * @param nnz Number of non-zeros
+ * @param is_symmetric Whether matrix is symmetric
+ * @param is_pattern Whether matrix is pattern only
+ * @param is_complex Whether matrix has complex values
+ * @return status_t Status code
+ */
+status_t create_test_mtx_file(const char* filename, uint64_t rows, uint64_t cols, uint64_t nnz, int is_symmetric, int is_pattern, int is_complex);
+
+/**
+ * @brief Delete a temporary test file
+ */
+void delete_test_file(const char* filename);
+
 #endif // TEST_HELPERS_H

@@ -107,6 +107,11 @@ add_library(validator
 target_include_directories(validator PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_petsc(validator)
 
+add_library(mtx_parser
+  src/parsers/parse_mtx.c
+)
+target_include_directories(mtx_parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 add_library(csr_format
   src/formats/csr.c
 )
@@ -288,6 +293,24 @@ add_test(NAME csr_spmm_perf COMMAND csr_spmm_tests performance)
 # ...
 # ...
 # ...
+
+# ----- Parser Tests --------
+
+add_executable(mtx_parser_tests tests/parsers/mtx_parse_tests.c)
+target_link_libraries(mtx_parser_tests
+  PRIVATE
+    mtx_parser
+    csr_format
+    test_utils
+)
+# add_test(NAME MTXParserTests COMMAND mtx_parser_tests all)
+add_test(NAME mtx_parser_invalid COMMAND mtx_parser_tests invalid_file)
+add_test(NAME mtx_parser_basicr COMMAND mtx_parser_tests basic_read)
+add_test(NAME mtx_parser_pattern COMMAND mtx_parser_tests pattern_matrix)
+add_test(NAME mtx_parser_symmetric COMMAND mtx_parser_tests symmetric_matrix)
+add_test(NAME mtx_parser_memest COMMAND mtx_parser_tests memory_estimate)
+add_test(NAME mtx_parser_fconv COMMAND mtx_parser_tests format_conversion)
+add_test(NAME mtx_parser_edge COMMAND mtx_parser_tests edge_cases)
 
 # --- Validation Tests ------
 

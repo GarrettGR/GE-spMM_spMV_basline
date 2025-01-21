@@ -267,6 +267,37 @@ status_t compute_dense_spmv(const csr_matrix *A, const double *x, double *y) {
   return STATUS_SUCCESS;
 }
 
+status_t create_test_mtx_file(const char* filename, uint64_t rows, uint64_t cols, uint64_t nnz, int is_symmetric, int is_pattern, int is_complex) {
+  FILE* fp = fopen(filename, "w");
+  if (!fp) return STATUS_FILE_ERROR;
+
+  fprintf(fp, "%%%%MatrixMarket matrix coordinate %s %s\n", is_pattern ? "pattern" : (is_complex ? "complex" : "real"), is_symmetric ? "symmetric" : "general");
+  fprintf(fp, "%llu %llu %llu\n", rows, cols, nnz);
+
+  for (uint64_t i = 0; i < nnz; i++) {
+    uint64_t row = (rand() % rows) + 1;
+    uint64_t col = (rand() % cols) + 1;
+    
+    if (is_pattern) {
+      fprintf(fp, "%llu %llu\n", row, col);
+    } else if (is_complex) {
+      double real = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
+      double imag = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
+      fprintf(fp, "%llu %llu %f %f\n", row, col, real, imag);
+    } else {
+      double val = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
+      fprintf(fp, "%llu %llu %f\n", row, col, val);
+    }
+  }
+
+  fclose(fp);
+  return STATUS_SUCCESS;
+}
+
+void delete_test_file(const char* filename) {
+  remove(filename);
+}
+
 int run_test_suite(int argc, char** argv, const test_case_t* test_cases) {
   
   if (argc != 2) {

@@ -1,7 +1,7 @@
 #ifndef CSR_H
 #define CSR_H
 
-#include <stddef.h>
+// #include <stddef.h>
 #include <stdint.h>
 #include "utils/profiler.h"
 #include "utils/status.h"
